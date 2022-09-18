@@ -144,6 +144,18 @@ class SearchProblem(abc.ABC):
 
 ACTION_LIST = ["UP", "DOWN", "LEFT", "RIGHT"]
 
+class State():
+    def __init__(self, pos: Tuple[int, int], cost: int, targets: List[Tuple[int, int]], actions : List[str]):
+        self.pos = pos
+        self.posy = pos[0]
+        self.posx = pos[1]
+        self.cost = cost
+        self.targets = targets
+        self.actions = actions
+    
+    def isGoal(self):
+        return not(self.targets)
+
 class GridworldSearchProblem(SearchProblem):
     """
     Fill in these methods to define the grid world search as a search problem.
@@ -151,26 +163,81 @@ class GridworldSearchProblem(SearchProblem):
     In the type hints, we use "State" to denote a data structure that keeps track of the state, and you can use
     any implementation of a "State" you want.
     """
-    def __init__(self, file):
+    def __init__(self, file_name):
         """Read the text file and initialize all necessary variables for the search problem"""
         "*** YOUR CODE HERE ***"
-        raise NotImplementedError
+        file = open(file_name)
+        data = [i.split() for i in file.readlines()]
+        self.height = int(data[0][0])
+        self.width = int(data[0][1])
+        self.map = []
+        self.toVisit = []
+        for i in range(1, 1 + self.height):
+            row = []
+            for j in range(0, self.width):
+                pos = int(data[i][j])
+                row.append(int(data[i][j]))
+                if pos == 1:
+                    self.toVisit.append((i - 1, j))
+            self.map.append(row)
+        self.start = State((int(data[-1][1]), int(data[-1][0])), 0, self.toVisit, [])
+        
 
-    def getStartState(self) -> "State":
+    def getStartState(self) -> State:
         "*** YOUR CODE HERE ***"
-        raise NotImplementedError
+        return self.start
 
-    def isGoalState(self, state: "State") -> bool:
+    def isGoalState(self, state: State) -> bool:
         "*** YOUR CODE HERE ***"
-        raise NotImplementedError
+        return state.isGoal()
 
-    def getSuccessors(self, state: "State") -> List[Tuple["State", str, int]]:
+    def getSuccessors(self, state: State) -> List[Tuple[State, str, int]]:
+        # This return a list of succesors, each of which is a tuple of a state, the action taken to get there, and the cost?
         "*** YOUR CODE HERE ***"
-        raise NotImplementedError
+        successors = []
+        # Check if valid to move in each direction if so add successor to array
+        # This is a list of tuples, where each tuple has a state, the move to get to that state,
+        # And the total cost of getting to that state from the start state
+        if (state.posy + 1 < self.height and self.map[state.posy + 1][state.posx] != -1):
+            succesorPos = (state.posy + 1, state.posx)
+            successors.append((State(succesorPos,
+                                     state.cost + 1, 
+                                     list(filter(lambda x: x != (succesorPos), state.targets)),
+                                     state.actions + [ACTION_LIST[1]]), 
+                               ACTION_LIST[1],
+                               state.cost + 1))
+                              
+        if (state.posx + 1 < self.width and self.map[state.posy][state.posx + 1] != -1):
+            succesorPos = (state.posy, state.posx + 1)
+            successors.append((State(succesorPos,
+                                     state.cost + 1,
+                                     list(filter(lambda x: x != (succesorPos), state.targets)),
+                                     state.actions + [ACTION_LIST[3]]),
+                               ACTION_LIST[3],
+                               state.cost + 1))
+
+        if (state.posy - 1 >= 0 and self.map[state.posy - 1][state.posx] != -1):
+            succesorPos = (state.posy - 1, state.posx)
+            successors.append((State(succesorPos,
+                                     state.cost + 1,
+                                     list(filter(lambda x: x != (succesorPos), state.targets)),
+                                     state.actions + [ACTION_LIST[0]]),
+                               ACTION_LIST[0],
+                               state.cost + 1))
+
+        if (state.posx - 1 >= 0 and self.map[state.posy][state.posx - 1] != -1):
+            succesorPos = (state.posy, state.posx - 1)
+            successors.append((State(succesorPos,
+                                     state.cost + 1,
+                                     list(filter(lambda x: x != (succesorPos), state.targets)),
+                                     state.actions + [ACTION_LIST[2]]),
+                               ACTION_LIST[2],
+                               state.cost + 1))
+        return successors
 
     def getCostOfActions(self, actions: List[str]) -> int:
         "*** YOUR CODE HERE ***"
-        return NotImplementedError
+        return len(actions)
 
 
 def depthFirstSearch(problem: SearchProblem) -> List[str]:
@@ -188,7 +255,24 @@ def depthFirstSearch(problem: SearchProblem) -> List[str]:
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
     "*** YOUR CODE HERE ***"
-    raise NotImplementedError
+    # print("Start:", problem.getStartState().pos)
+    visited = set()
+    stack = Stack()
+    stack.push(problem.getStartState())
+    while(not(stack.isEmpty())):
+        state = stack.pop()
+        # print(state.pos)
+        # print(state)
+        # What if we have visited before but it's taken us longer to get there?
+        # This is also not tracking actions correctly, if we have been there and return we should remove that 
+        if (state.pos, tuple(state.targets)) in visited:
+            continue
+        visited.add((state.pos, tuple(state.targets)))
+        if state.isGoal():
+            return state.actions
+        for suc in problem.getSuccessors(state):
+            stack.push(suc[0])
+    return None
 
 
 def breadthFirstSearch(problem: SearchProblem) -> List[str]:
@@ -232,6 +316,9 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic) -> List[str]:
 if __name__ == "__main__":
     ### Sample Test Cases ###
     # Run the following statements below to test the running of your program
+    gridworld_search_problem = GridworldSearchProblem("pset1_sample_test_case1.txt")
+    print(depthFirstSearch(gridworld_search_problem))
+    exit()       
     gridworld_search_problem = GridworldSearchProblem("pset1_sample_test_case1.txt") # Test Case 1
     print(depthFirstSearch(gridworld_search_problem))
     print(breadthFirstSearch(gridworld_search_problem))
