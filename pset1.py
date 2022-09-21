@@ -180,7 +180,8 @@ class GridworldSearchProblem(SearchProblem):
                 if pos == 1:
                     self.toVisit.append((i - 1, j))
             self.map.append(row)
-        self.start = State((int(data[-1][1]), int(data[-1][0])), 0, self.toVisit, [])
+        startpos = int(data[-1][0]), int(data[-1][1])
+        self.start = State(startpos, 0, list(filter(lambda x: x != startpos , self.toVisit)), [])
         
 
     def getStartState(self) -> State:
@@ -264,7 +265,8 @@ def depthFirstSearch(problem: SearchProblem) -> List[str]:
         # print(state.pos)
         # print(state)
         # What if we have visited before but it's taken us longer to get there?
-        # This is also not tracking actions correctly, if we have been there and return we should remove that 
+        # This is also not tracking actions correctly, if we have been there and return we should remove that
+        # Code should allow for the same state to be visited by different paths 
         if (state.pos, tuple(state.targets)) in visited:
             continue
         visited.add((state.pos, tuple(state.targets)))
@@ -278,7 +280,23 @@ def depthFirstSearch(problem: SearchProblem) -> List[str]:
 def breadthFirstSearch(problem: SearchProblem) -> List[str]:
     """Search the shallowest nodes in the search tree first."""
     "*** YOUR CODE HERE ***"
-    raise NotImplementedError
+    visited = set()
+    queue = Queue()
+    queue.push(problem.getStartState())
+    while(not(queue.isEmpty())):
+        state = queue.pop()
+        # print(state.pos)
+        # print(state)
+        # What if we have visited before but it's taken us longer to get there?
+        # This is also not tracking actions correctly, if we have been there and return we should remove that 
+        if (state.pos, tuple(state.targets)) in visited:
+            continue
+        visited.add((state.pos, tuple(state.targets)))
+        if state.isGoal():
+            return state.actions
+        for suc in problem.getSuccessors(state):
+            queue.push(suc[0])
+    return None
 
 
 def nullHeuristic(state: "State", problem: Optional[GridworldSearchProblem] = None) -> int:
@@ -289,36 +307,55 @@ def nullHeuristic(state: "State", problem: Optional[GridworldSearchProblem] = No
     return 0
 
 
-def simpleHeuristic(state: "State", problem: Optional[GridworldSearchProblem] = None) -> int:
+def simpleHeuristic(state: State, problem: Optional[GridworldSearchProblem] = None) -> int:
     """
     This heuristic returns the number of residences that you have not yet visited.
     """
-    raise NotImplementedError
+    return len(state.targets)
 
-
-def customHeuristic(state: "State", problem: Optional[GridworldSearchProblem] = None) -> int:
+def customHeuristic(state: State, problem: Optional[GridworldSearchProblem] = None) -> int:
     """
     Create your own heurstic. The heuristic should
         (1) reduce the number of states that we need to search (tested by the autograder by counting the number of
             calls to GridworldSearchProblem.getSuccessors)
         (2) be admissible and consistent
     """
-    raise NotImplementedError
+    # return len(state.targets)
+    # return min((abs(state.posx - posx) + abs(state.posy - posy) + 20 * len(state.targets) for (posx, posy) in state.targets), default = 0)
+    # Idea: search the more central areas first
+    # Nothing works
+    return state.cost + min((abs(state.posx - posx) + abs(state.posy - posy) for (posx, posy) in state.targets), default = 0)
+    # return state.cost + min((abs(state.posx - posx) + abs(state.posy - posy) for (posx, posy) in state.targets), default = 0)
 
 
 def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic) -> List[str]:
     """Search the node that has the lowest combined cost and heuristic first.
     This function takes in an arbitrary heuristic (which itself is a function) as an input."""
-    "*** YOUR CODE HERE ***"
-    raise NotImplementedError
-
+    visited = set()
+    prioqueue = PriorityQueue()
+    prioqueue.push(problem.getStartState(), heuristic(problem.getStartState()))
+    while(not(prioqueue.isEmpty())):
+        state = prioqueue.pop()
+        if (state.pos, tuple(state.targets)) in visited:
+            continue
+        visited.add((state.pos, tuple(state.targets)))
+        if state.isGoal():
+            return state.actions
+        for suc in problem.getSuccessors(state):
+            prioqueue.push(suc[0], heuristic(suc[0]))
+    return None
 
 if __name__ == "__main__":
     ### Sample Test Cases ###
     # Run the following statements below to test the running of your program
-    gridworld_search_problem = GridworldSearchProblem("pset1_sample_test_case1.txt")
-    print(depthFirstSearch(gridworld_search_problem))
-    exit()       
+    # gridworld_search_problem = GridworldSearchProblem("gradescope_dfs_test.txt")
+    # print(depthFirstSearch(gridworld_search_problem))
+    # exit()
+    # 
+    # gridworld_search_problem = GridworldSearchProblem("gradescope_astar_test.txt")
+    # print(aStarSearch(gridworld_search_problem))
+    # exit()
+
     gridworld_search_problem = GridworldSearchProblem("pset1_sample_test_case1.txt") # Test Case 1
     print(depthFirstSearch(gridworld_search_problem))
     print(breadthFirstSearch(gridworld_search_problem))
