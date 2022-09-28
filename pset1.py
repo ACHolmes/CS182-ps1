@@ -256,17 +256,11 @@ def depthFirstSearch(problem: SearchProblem) -> List[str]:
     print("Start's successors:", problem.getSuccessors(problem.getStartState()))
     """
     "*** YOUR CODE HERE ***"
-    # print("Start:", problem.getStartState().pos)
     visited = set()
     stack = Stack()
     stack.push(problem.getStartState())
     while(not(stack.isEmpty())):
         state = stack.pop()
-        # print(state.pos)
-        # print(state)
-        # What if we have visited before but it's taken us longer to get there?
-        # This is also not tracking actions correctly, if we have been there and return we should remove that
-        # Code should allow for the same state to be visited by different paths 
         if (state.pos, tuple(state.targets)) in visited:
             continue
         visited.add((state.pos, tuple(state.targets)))
@@ -285,10 +279,6 @@ def breadthFirstSearch(problem: SearchProblem) -> List[str]:
     queue.push(problem.getStartState())
     while(not(queue.isEmpty())):
         state = queue.pop()
-        # print(state.pos)
-        # print(state)
-        # What if we have visited before but it's taken us longer to get there?
-        # This is also not tracking actions correctly, if we have been there and return we should remove that 
         if (state.pos, tuple(state.targets)) in visited:
             continue
         visited.add((state.pos, tuple(state.targets)))
@@ -304,13 +294,14 @@ def nullHeuristic(state: "State", problem: Optional[GridworldSearchProblem] = No
     A heuristic function estimates the cost from the current state to the nearest
     goal in the provided SearchProblem.  This heuristic is trivial.
     """
-    return 0
+    return state.cost
 
 
 def simpleHeuristic(state: State, problem: Optional[GridworldSearchProblem] = None) -> int:
     """
     This heuristic returns the number of residences that you have not yet visited.
     """
+    # print(len(state.targets))
     return len(state.targets)
 
 def customHeuristic(state: State, problem: Optional[GridworldSearchProblem] = None) -> int:
@@ -320,13 +311,11 @@ def customHeuristic(state: State, problem: Optional[GridworldSearchProblem] = No
             calls to GridworldSearchProblem.getSuccessors)
         (2) be admissible and consistent
     """
-    # return len(state.targets)
-    # return min((abs(state.posx - posx) + abs(state.posy - posy) + 20 * len(state.targets) for (posx, posy) in state.targets), default = 0)
-    # Idea: search the more central areas first
-    # Nothing works
-    return state.cost + min((abs(state.posx - posx) + abs(state.posy - posy) for (posx, posy) in state.targets), default = 0)
-    # return state.cost + min((abs(state.posx - posx) + abs(state.posy - posy) for (posx, posy) in state.targets), default = 0)
-
+    # The following is actually a better heuristic even though it's not consistent:
+    # 10 * len(state.targets) + min(list(abs(state.posy - posy) + abs(state.posx - posx) for (posy, posx) in state.targets), default = 0)
+    # I believe this is true since, by using a visited set, we are essentially performing a tree search raather than a graph search
+    # thus we only actually require an admissible heuristic (which the above is)
+    return min(list(abs(state.posy - posy) + abs(state.posx - posx) for (posy, posx) in state.targets), default = 0)
 
 def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic) -> List[str]:
     """Search the node that has the lowest combined cost and heuristic first.
@@ -341,32 +330,27 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic) -> List[str]:
         visited.add((state.pos, tuple(state.targets)))
         if state.isGoal():
             return state.actions
-        for suc in problem.getSuccessors(state):
-            prioqueue.push(suc[0], heuristic(suc[0]))
+        succesors = problem.getSuccessors(state)
+        for suc in succesors:
+            prioqueue.push(suc[0], suc[0].cost + heuristic(suc[0]))
+
     return None
 
 if __name__ == "__main__":
     ### Sample Test Cases ###
     # Run the following statements below to test the running of your program
-    # gridworld_search_problem = GridworldSearchProblem("gradescope_dfs_test.txt")
-    # print(depthFirstSearch(gridworld_search_problem))
-    # exit()
-    # 
-    # gridworld_search_problem = GridworldSearchProblem("gradescope_astar_test.txt")
-    # print(aStarSearch(gridworld_search_problem))
-    # exit()
 
     gridworld_search_problem = GridworldSearchProblem("pset1_sample_test_case1.txt") # Test Case 1
     print(depthFirstSearch(gridworld_search_problem))
     print(breadthFirstSearch(gridworld_search_problem))
-    print(aStarSearch(gridworld_search_problem))
+    print(aStarSearch(gridworld_search_problem, customHeuristic))
     
     gridworld_search_problem = GridworldSearchProblem("pset1_sample_test_case2.txt") # Test Case 2
     print(depthFirstSearch(gridworld_search_problem))
     print(breadthFirstSearch(gridworld_search_problem))
-    print(aStarSearch(gridworld_search_problem))
-    
+    print(aStarSearch(gridworld_search_problem, customHeuristic))
+
     gridworld_search_problem = GridworldSearchProblem("pset1_sample_test_case3.txt") # Test Case 3
     print(depthFirstSearch(gridworld_search_problem))
     print(breadthFirstSearch(gridworld_search_problem))
-    print(aStarSearch(gridworld_search_problem))
+    print(aStarSearch(gridworld_search_problem, customHeuristic))
